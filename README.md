@@ -13,14 +13,19 @@ python create_hdf5_dataset.py \[params\] data_dir destination
 
 `data_dir` is a path to directory contains preprocessed RGB and depth images.
 Names of paired RGB and depth images must have the same prefix and must end with "rgb.png" and "depth.png" respectfully. For example, "image0001_rgb.png" and "image0001_depth.png".
+
 `destination` is a desired path to HDF5 dataset.
 
 ### Params
 
 `-h, --height`: height of the cropped image. Default is 224
+
 `-w, --width`: width of the cropped image. Default is 224
+
 `-n, --n_crops`: number of crops taken from each image. Default is 1
+
 `-p, --percent`: percentage (0 to 100) of data included in hdf5 dataset. Default is 100
+
 `--channels_first`: True or False: are channels the first dimension of image, or the last dimension. Default is True
 
 ### Result
