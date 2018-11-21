@@ -38,7 +38,33 @@ The result is HDF5 database with two datasets: "data" (RGB images) and "label" (
 
 ## Use as Python module
 
+This utility is also available for using as Python module. Module should be called as shown below:
+
 ```
 from create_hdf5_dataset import create_hdf5_dataset
-create_hdf5_dataset(data_dir, destination, h=224, w=224, n_crops=1, percent=100, channels_first=True)
+create_hdf5_dataset(data_dir,
+                    destination,
+                    h=224,
+                    w=224,
+                    crops_per_image=1,
+                    percent=100,
+                    channels_first=True,
+                    rgb_postprocessing=postprocess_rgb,
+                    depth_postprocessing=postprocess_depth)
 ```
+
+### Params
+
+`h:` desired height of image, integer number
+
+`w:` desired width of image, integer number
+
+`crops_per_image:` number of crops taken from each source image, integer number
+
+`percent:` the percent of data of source collection that will be included into the dataset. Float number from 0 to 100
+
+`channels_first:` is dimension of channels the first dimension or not. Boolean value. If True, image shape is (3, h, w). If False, image.shape is (h, w, 3).
+
+`rgb_postprocessing:` post-processing function of RGB image. Takes an RGB image of shape (h, w, 3) or (3, h, w) with pixel values from 0 to 255 as input. Gives processed RGB image. Callable function
+
+`depth_postprocessing:` post-processing function of depth image. Takes a depth image of shape (h, w) with pixel values from 0 to 65535 as input. Gives processed depth image. Callable function

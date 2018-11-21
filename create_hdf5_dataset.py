@@ -46,13 +46,19 @@ def random_crop(image_pair, h=224, w=224, n_crops=1):
     return result
 
 
+def id_function(x):
+    return x
+
+
 def create_hdf5_dataset(data_dir, 
                         destination, 
                         percent=100.,
                         crops_per_image=1,
                         h=224,
                         w=224,
-                        channels_first=True):
+                        channels_first=True,
+                        rgb_postprocessing=id_function,
+                        depth_postprocessing=id_function):
     filenames = []
     print("Collecting image names...")
     collect_filenames(data_dir, filenames)
@@ -66,8 +72,8 @@ def create_hdf5_dataset(data_dir,
         cropped_image_pairs += random_crop(image_pair, h=h, w=w, n_crops=crops_per_image)
     print("Done")
     print("Creating dataset...")
-    rgbs = np.array([x[0] for x in cropped_image_pairs])
-    depths = np.array([x[1] for x in cropped_image_pairs])
+    rgbs = np.array([rgb_postprocessing(x[0]) for x in cropped_image_pairs])
+    depths = np.array([depth_postprocessing(x[1]) for x in cropped_image_pairs])
     if channels_first:
         rgbs = np.transpose(rgbs, [0, 3, 1, 2])
     with h5py.File(destination, 'w') as f:
@@ -103,67 +109,68 @@ Example
 python create_hdf5_dataset.py -h 224 -w 224 -n 1 -p 100 --channels-first True ./Data ./data.hdf5
 """
 
-# Show usage message
-if len(argv) < 3:
-    print(usage_message)
-    exit(0)
-    
-# Initialize params
-h = 224
-w = 224
-n_crops = 1
-channels_first = True
-percent =  100
+if __name__ == '__main__':
+    # Show usage message
+    if len(argv) < 3:
+        print(usage_message)
+        exit(0)
 
-# Specify params from argv
-for i in range(1, len(argv)):
-    if argv[i] in ['-h', '--height']:
-        try:
-            h = int(argv[i + 1])
-            assert(h > 0 and h <= 400)
-        except:
-            print(usage_message)
-            print("Specify image height as positive integer number no more than 400")
-            exit(0)
-    if argv[i] in ['-w', '--width']:
-        try:
-            w = int(argv[i + 1])
-            assert(w > 0 and w <= 550)
-        except:
-            print(usage_message)
-            print("Specify image width as positive integer number no more than 550")
-            exit(0)
-    if argv[i] in ['-p', '--percent']:
-        try:
-            percent = float(argv[i + 1])
-            assert(percent > 0 and percent <= 100)
-        except:
-            print(usage_message)
-            print("Specify percent of source dataset as float number from 0 to 100")
-            exit(0)
-    if argv[i] in ['-n', '--n_crops']:
-        try:
-            n_crops = int(argv[i + 1])
-            assert(n_crops > 0)
-        except:
-            print(usage_message)
-            print("Specify number of crops per image as positive integer number")
-    if argv[i] == '--channels_first':
-        try:
-            channels_first = (argv[i + 1] == "True")
-        except:
-            print(usage_message)
-            print("Specify channels_first parameter as True or False")
-            exit(0)
-data_dir = argv[-2]
-destination = argv[-1]
+    # Initialize params
+    h = 224
+    w = 224
+    n_crops = 1
+    channels_first = True
+    percent =  100
 
-# Create HDF5 dataset
-create_hdf5_dataset(data_dir,
-                    destination,
-                    h=h,
-                    w=w,
-                    percent=percent,
-                    crops_per_image=n_crops,
-                    channels_first=channels_first
-                   )
+    # Specify params from argv
+    for i in range(1, len(argv)):
+        if argv[i] in ['-h', '--height']:
+            try:
+                h = int(argv[i + 1])
+                assert(h > 0 and h <= 400)
+            except:
+                print(usage_message)
+                print("Specify image height as positive integer number no more than 400")
+                exit(0)
+        if argv[i] in ['-w', '--width']:
+            try:
+                w = int(argv[i + 1])
+                assert(w > 0 and w <= 550)
+            except:
+                print(usage_message)
+                print("Specify image width as positive integer number no more than 550")
+                exit(0)
+        if argv[i] in ['-p', '--percent']:
+            try:
+                percent = float(argv[i + 1])
+                assert(percent > 0 and percent <= 100)
+            except:
+                print(usage_message)
+                print("Specify percent of source dataset as float number from 0 to 100")
+                exit(0)
+        if argv[i] in ['-n', '--n_crops']:
+            try:
+                n_crops = int(argv[i + 1])
+                assert(n_crops > 0)
+            except:
+                print(usage_message)
+                print("Specify number of crops per image as positive integer number")
+        if argv[i] == '--channels_first':
+            try:
+                channels_first = (argv[i + 1] == "True")
+            except:
+                print(usage_message)
+                print("Specify channels_first parameter as True or False")
+                exit(0)
+    data_dir = argv[-2]
+    destination = argv[-1]
+
+    # Create HDF5 dataset
+    create_hdf5_dataset(data_dir,
+                        destination,
+                        h=h,
+                        w=w,
+                        percent=percent,
+                        crops_per_image=n_crops,
+                        channels_first=channels_first
+                       )
