@@ -17,9 +17,8 @@ def collect_filenames(data_dir, filenames_array):
         collect_filenames(os.path.join(data_dir, subdir), filenames_array)
         
         
-def read_img_pairs(filenames, percent=100.):
-    n_imgs = int(len(filenames) * percent / 100.)
-    filenames = np.random.choice(filenames, size=n_imgs, replace=False)
+def read_img_pairs(filenames):
+    filenames.sort()
     image_pairs = []
     for filename in tqdm(filenames):
         rgb_filename = filename + 'rgb.png'
@@ -56,6 +55,7 @@ def create_hdf5_dataset(data_dir,
                         crops_per_image=1,
                         h=224,
                         w=224,
+                        chunk_size=1024,
                         channels_first=True,
                         rgb_postprocessing=id_function,
                         depth_postprocessing=id_function):
@@ -63,23 +63,38 @@ def create_hdf5_dataset(data_dir,
     print("Collecting image names...")
     collect_filenames(data_dir, filenames)
     print("Done")
-    print("Reading images...")
-    image_pairs = read_img_pairs(filenames, percent=percent)
-    print("Done")
-    print("Cropping images...")
-    cropped_image_pairs = []
-    for image_pair in tqdm(image_pairs):
-        cropped_image_pairs += random_crop(image_pair, h=h, w=w, n_crops=crops_per_image)
-    print("Done")
-    print("Creating dataset...")
-    rgbs = np.array([rgb_postprocessing(x[0]) for x in cropped_image_pairs])
-    depths = np.array([depth_postprocessing(x[1]) for x in cropped_image_pairs])
-    if channels_first:
-        rgbs = np.transpose(rgbs, [0, 3, 1, 2])
-    with h5py.File(destination, 'w') as f:
-        f.create_dataset("data", data=rgbs)
-        f.create_dataset("label", data=depths)
-    print("Done")
+    
+    n_imgs = int(len(filenames) * percent / 100.)
+    filenames = np.random.choice(filenames, size=n_imgs, replace=False)
+    n_chunks = int(np.ceil(len(filenames) / chunk_size))
+    for chunk_id in range(n_chunks):
+        print("Processing chunk {} of {}".format(chunk_id + 1, n_chunks))
+        print("Reading images...")
+        image_pairs = read_img_pairs(filenames[chunk_id * chunk_size:(chunk_id + 1) * chunk_size])
+        print("Done")
+        print("Cropping images...")
+        cropped_image_pairs = []
+        for image_pair in tqdm(image_pairs):
+            cropped_image_pairs += random_crop(image_pair, h=h, w=w, n_crops=crops_per_image)
+        print("Done")
+        print("Writing to dataset...")
+        rgbs = np.array([rgb_postprocessing(x[0]) for x in cropped_image_pairs])
+        depths = np.array([depth_postprocessing(x[1]) for x in cropped_image_pairs])
+        if channels_first:
+            rgbs = np.transpose(rgbs, [0, 3, 1, 2])
+        if chunk_id == 0:
+            with h5py.File(destination, 'w') as f:
+                f.create_dataset("data", data=rgbs, maxshape=[None] + list(rgbs.shape[1:]))
+                f.create_dataset("label", data=depths, maxshape=[None] + list(depths.shape[1:]))
+        else:
+            with h5py.File(destination, 'a') as f:
+                data = f["data"]
+                label = f["label"]
+                data.resize(data.shape[0] + rgbs.shape[0], axis=0)
+                label.resize(label.shape[0] + depths.shape[0], axis=0)
+                data[data.shape[0]:data.shape[0] + rgbs.shape[0]] = rgbs
+                label[label.shape[0]:label.shape[0] + depths.shape[0]] = depths
+        print("Done")
     
     
 argv = sys.argv
@@ -98,6 +113,7 @@ Params
 -w, --width: width of the cropped image. Default is 224
 -n, --n_crops: number of crops taken from each image. Default is 1
 -p, --percent: percentage (0 to 100) of data included in hdf5 dataset. Default is 100
+-c, --chunksize: number of images read and processed in one chunk (to deal with large datasets that don't fit into RAM). Default is 1024
 --channels_first: True or False: are channels the first dimension of image, or the last dimension. Default is True
 
 Result
@@ -121,6 +137,7 @@ if __name__ == '__main__':
     n_crops = 1
     channels_first = True
     percent =  100
+    cnunksize = 1024
 
     # Specify params from argv
     for i in range(1, len(argv)):
@@ -162,6 +179,12 @@ if __name__ == '__main__':
                 print(usage_message)
                 print("Specify channels_first parameter as True or False")
                 exit(0)
+        if argv[i] in ['-c', '--chunksize']:
+            try:
+                cnunksize = int(argv[i + 1])
+            except:
+                print(usage_message)
+                print("Specify size of image batch as positive integer number")
     data_dir = argv[-2]
     destination = argv[-1]
 
@@ -172,5 +195,6 @@ if __name__ == '__main__':
                         w=w,
                         percent=percent,
                         crops_per_image=n_crops,
-                        channels_first=channels_first
+                        channels_first=channels_first,
+                        cnunk_size=cnunksize
                        )

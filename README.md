@@ -26,6 +26,8 @@ Names of paired RGB and depth images must have the same prefix and must end with
 
 `-p, --percent`: percentage (0 to 100) of data included in hdf5 dataset. Default is 100
 
+`-c, --chunksize`: number of images in one chunk. Default is 1024
+
 `--channels_first`: True or False: are channels the first dimension of image, or the last dimension. Default is True
 
 ### Result
@@ -34,7 +36,7 @@ The result is HDF5 database with two datasets: "data" (RGB images) and "label" (
 
 ### Example
 
-`python create_hdf5_dataset.py -h 224 -w 224 -n 1 -p 100 --channels-first True ./Data ./data.hdf5`
+`python create_hdf5_dataset.py -h 224 -w 224 -n 1 -p 100 --channels-first True --chunksize 1024 ./Data ./data.hdf5`
 
 ## Use as Python module
 
@@ -49,6 +51,7 @@ create_hdf5_dataset(data_dir,
                     crops_per_image=1,
                     percent=100,
                     channels_first=True,
+                    chunk_size=1024,
                     rgb_postprocessing=postprocess_rgb,
                     depth_postprocessing=postprocess_depth)
 ```
@@ -63,7 +66,9 @@ create_hdf5_dataset(data_dir,
 
 `percent:` the percent of data of source collection that will be included into the dataset. Float number from 0 to 100
 
-`channels_first:` is dimension of channels the first dimension or not. Boolean value. If True, image shape is (3, h, w). If False, image.shape is (h, w, 3).
+`channels_first:` is dimension of channels the first dimension or not. Boolean value. If True, image shape is (3, h, w). If False, image.shape is (h, w, 3)
+
+`chunk_size:` number of images in one chunk (dataset processing is chunk-wise to deal with large datasets). Integer number
 
 `rgb_postprocessing:` post-processing function of RGB image. Takes an RGB image of shape (h, w, 3) or (3, h, w) with pixel values from 0 to 255 as input. Gives processed RGB image. Callable function
 
