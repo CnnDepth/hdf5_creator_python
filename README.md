@@ -48,6 +48,7 @@ create_hdf5_dataset(data_dir,
                     destination,
                     h=224,
                     w=224,
+                    processing_function=None,
                     crops_per_image=1,
                     percent=100,
                     channels_first=True,
@@ -62,6 +63,8 @@ create_hdf5_dataset(data_dir,
 
 `w:` desired width of image, integer number
 
+`processing_function:` function that processes images. This function takes a list of pairs (RGB, depth) and a number of crops from each image. It must return list of processed (RGB, depth) pairs. RGB images have pixel values from 0 to 255, depth images have pixel vaues from 0 to 65535.
+
 `crops_per_image:` number of crops taken from each source image, integer number
 
 `percent:` the percent of data of source collection that will be included into the dataset. Float number from 0 to 100
@@ -69,7 +72,3 @@ create_hdf5_dataset(data_dir,
 `channels_first:` is dimension of channels the first dimension or not. Boolean value. If True, image shape is (3, h, w). If False, image.shape is (h, w, 3)
 
 `chunk_size:` number of images in one chunk (dataset processing is chunk-wise to deal with large datasets). Integer number
-
-`rgb_postprocessing:` post-processing function of RGB image. Takes an RGB image of shape (h, w, 3) or (3, h, w) with pixel values from 0 to 255 as input. Gives processed RGB image. Callable function
-
-`depth_postprocessing:` post-processing function of depth image. Takes a depth image of shape (h, w) with pixel values from 0 to 65535 as input. Gives processed depth image. Callable function
