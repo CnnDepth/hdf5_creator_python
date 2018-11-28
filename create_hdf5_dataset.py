@@ -2,6 +2,7 @@ import h5py
 import os
 import numpy as np
 from skimage.io import imread
+from skimage.transform import resize
 from tqdm import tqdm
 import sys
 
@@ -80,8 +81,8 @@ def create_hdf5_dataset(data_dir,
                 cropped_image_pairs += random_crop(image_pair, h=h, w=w, n_crops=crops_per_image)
             else:
                 cropped_image_pairs += processing_function(image_pair, crops_per_image)
-        rgbs = np.array([resize(x[0], (h, w, 3)) for x in cropped_image_pairs if x[0].shape != (h, w, 3)])
-        depths = np.array([resize(x[1], (h, w)) for x in cropped_image_pairs if x[1].shape != (h, w)])
+        rgbs = np.array([x[0] for x in cropped_image_pairs])
+        depths = np.array([x[1] for x in cropped_image_pairs])
         print("Done")
         print("Writing to dataset...")
         if channels_first:

@@ -63,7 +63,7 @@ create_hdf5_dataset(data_dir,
 
 `w:` desired width of image, integer number
 
-`processing_function:` function that processes images. This function takes a list of pairs (RGB, depth) and a number of crops from each image. It must return list of processed (RGB, depth) pairs. RGB images have pixel values from 0 to 255, depth images have pixel vaues from 0 to 65535.
+`processing_function:` function that processes images. This function takes a list of pairs (RGB, depth) and a number of crops from each image. It must return list of processed (RGB, depth) pairs. RGB image must have shape (h, w, 3), depth image must have shape (h, w). RGB images have pixel values from 0 to 255, depth images have pixel vaues from 0 to 65535.
 
 `crops_per_image:` number of crops taken from each source image, integer number
 
