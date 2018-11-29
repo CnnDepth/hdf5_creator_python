@@ -95,10 +95,12 @@ def create_hdf5_dataset(data_dir,
             with h5py.File(destination, 'a') as f:
                 data = f["data"]
                 label = f["label"]
-                data.resize(data.shape[0] + rgbs.shape[0], axis=0)
-                label.resize(label.shape[0] + depths.shape[0], axis=0)
-                data[data.shape[0]:data.shape[0] + rgbs.shape[0]] = rgbs
-                label[label.shape[0]:label.shape[0] + depths.shape[0]] = depths
+                print(np.array(data[-1]).max())
+                dataset_size = data.shape[0]
+                data.resize(dataset_size + rgbs.shape[0], axis=0)
+                label.resize(dataset_size + depths.shape[0], axis=0)
+                data[dataset_size:] = rgbs
+                label[dataset_size:] = depths
         print("Done")
     
     
