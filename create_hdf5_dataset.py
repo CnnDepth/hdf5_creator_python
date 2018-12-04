@@ -5,6 +5,7 @@ from skimage.io import imread
 from skimage.transform import resize
 from tqdm import tqdm
 import sys
+from multiprocessing import Pool
 
 
 def collect_filenames(data_dir, filenames_array):
@@ -46,6 +47,11 @@ def random_crop(image_pair, h=224, w=224, n_crops=1):
     return result
 
 
+def random_crop_function(arg_tuple):
+    image_pair, h, w, n_crops = arg_tuple
+    return random_crop(image_pair, h=h, w=w, n_crops=n_crops)
+
+
 def id_function(x):
     return x
 
@@ -58,6 +64,7 @@ def create_hdf5_dataset(data_dir,
                         w=224,
                         processing_function=None,
                         chunk_size=1024,
+                        n_jobs=1,
                         channels_first=True,
                         rgb_postprocessing=id_function,
                         depth_postprocessing=id_function):
@@ -69,18 +76,21 @@ def create_hdf5_dataset(data_dir,
     n_imgs = int(len(filenames) * percent / 100.)
     filenames = np.random.choice(filenames, size=n_imgs, replace=False)
     n_chunks = int(np.ceil(len(filenames) / chunk_size))
+    pool = Pool(n_jobs)
     for chunk_id in range(n_chunks):
         print("Processing chunk {} of {}".format(chunk_id + 1, n_chunks))
         print("Reading images...")
         image_pairs = read_img_pairs(filenames[chunk_id * chunk_size:(chunk_id + 1) * chunk_size])
         print("Done")
         print("Processing images...")
+        arg_tuples = [(image_pair, h, w, crops_per_image) for image_pair in image_pairs]
+        if processing_function is None:
+            cropped_image_pairs_list = tqdm(pool.map(random_crop_function, arg_tuples))
+        else:
+            cropped_image_pairs_list = tqdm(pool.map(processing_function, arg_tuples))
         cropped_image_pairs = []
-        for image_pair in tqdm(image_pairs):
-            if processing_function is None:
-                cropped_image_pairs += random_crop(image_pair, h=h, w=w, n_crops=crops_per_image)
-            else:
-                cropped_image_pairs += processing_function(image_pair, crops_per_image)
+        for x in cropped_image_pairs_list:
+            cropped_image_pairs += x
         rgbs = np.array([x[0] for x in cropped_image_pairs])
         depths = np.array([x[1] for x in cropped_image_pairs])
         print("Done")
@@ -121,6 +131,7 @@ Params
 -n, --n_crops: number of crops taken from each image. Default is 1
 -p, --percent: percentage (0 to 100) of data included in hdf5 dataset. Default is 100
 -c, --chunksize: number of images read and processed in one chunk (to deal with large datasets that don't fit into RAM). Default is 1024
+-j, --jobs: number of jobs for parallel processing. Default is 1
 --channels_first: True or False: are channels the first dimension of image, or the last dimension. Default is True
 
 Result
@@ -145,6 +156,7 @@ if __name__ == '__main__':
     channels_first = True
     percent =  100
     cnunksize = 1024
+    n_jobs = 1
 
     # Specify params from argv
     for i in range(1, len(argv)):
@@ -192,6 +204,12 @@ if __name__ == '__main__':
             except:
                 print(usage_message)
                 print("Specify size of image batch as positive integer number")
+        if argv[i] in ['-j', '--jobs']:
+            try:
+                n_jobs = int(argv[i + 1])
+            except:
+                print(usage_message)
+                print("Specify number of jobs as integer number")
     data_dir = argv[-2]
     destination = argv[-1]
 
